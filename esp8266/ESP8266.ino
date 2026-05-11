@@ -4,8 +4,8 @@
 #include <WiFiClientSecure.h>
 #include <SoftwareSerial.h>
 
-const char* ssid = "MsUchiha-PC";
-const char* password = "90Sasuke26";
+const char* ssid = "WIFI_NAME";
+const char* password = "WIFI_PASSWORD";
 
 const char* serverConfig = "https://cyrrotinqlcnfemozcza.supabase.co/rest/v1/config_actual?id=eq.1&select=*";
 const char* serverData = "https://cyrrotinqlcnfemozcza.supabase.co/rest/v1/live_data?id=eq.1";
