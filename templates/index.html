@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 <meta charset="UTF-8">
 <title>Dashboard Condensador</title>
 <script src="https://cdn.tailwindcss.com"></script>
-</head>
+
 
 <script>
 const SUPABASE_URL =
@@ -24,6 +25,7 @@ function supaHeaders() {
 
 </script>
 
+</head>
 
 <body class="bg-gray-900 text-white">
 
@@ -165,7 +167,9 @@ function supaHeaders() {
                 Iniciar
             </button>
 
-            <button onclick="detenerExperimento()"
+            <button
+                id="btnDetener" 
+                onclick="detenerExperimento()"
                 class="bg-red-600 px-6 py-2 rounded-xl">
                 Detener
             </button>
@@ -298,8 +302,9 @@ velB.oninput = () => velBValue.innerText = velB.value;
 async function cargarDatos() {
 
     try {
-
-    if (!sistemaOnline) return; // 🔥 PRIMERO VALIDAR
+            
+        
+    if (!sistemaOnline) return;
 
     const res = await fetch(
     `${SUPABASE_URL}/rest/v1/live_data?id=eq.1&select=*`,
@@ -314,8 +319,7 @@ async function cargarDatos() {
 
     const live = data[0];
 
-    if (!data) return;
-
+    
     tExt.innerText = live.text + " °C";
     hExt.innerText = live.hext + " %";
     tInt.innerText = live.tint + " °C";
@@ -327,7 +331,7 @@ async function cargarDatos() {
 
     pwm.innerText = live.pwm;
     corriente.innerText = live.corriente + " A";
-    rocio.innerText = live.puntoRocio + " °C";
+    rocio.innerText = live.puntorocio + " °C";
 
         // 🔥 ESTADO REAL DEL ARDUINO (DESDE /live)
     if (live.estado == 4) {
@@ -347,7 +351,7 @@ async function cargarDatos() {
         estadoSistema.className = "text-yellow-400 font-bold";
     }
     else if (live.estado == 0) {    
-        if (configActual.estado_control == 1) {
+        if (configActual && configActual.estado_control == 1) {
         estadoSistema.innerText = "🔴 EJECUTANDO";
         estadoSistema.className = "text-red-400 font-bold";
     }
@@ -369,125 +373,226 @@ async function cargarConfig() {
 
     try {
 
-    if (!sistemaOnline) {
-        document.getElementById("modo").innerText = "Modo: --";
-        return;
-    }
+        if (!sistemaOnline) {
+            document.getElementById("modo").innerText = "Modo: --";
+            return;
+        }
 
-    fetch(
-    `${SUPABASE_URL}/rest/v1/config_actual?id=eq.1&select=*`,
-    {
-        headers: supaHeaders()
-    }
-    )
-    const data = await res.json();
-    const cfg = data[0];
+        const res = await fetch('/config');
 
-    configActual = data;
+        const data = await res.json();
 
-    let texto = "";
-    const configContenido = document.getElementById("configContenido");
-    const modoTexto = document.getElementById("modo");
+        configActual = data;
 
-    // 🔥 calcular modo
-    let nuevoModo;
+        let texto = "";
 
-    if (data.estado_control == 0) {
-        nuevoModo = "Modo: --";
-    } else {
-        nuevoModo = data.modoManual == 1
-            ? "Modo: Manual"
-            : "Modo: Automático";
-    }
+        const configContenido =
+        document.getElementById("configContenido");
 
-    if (modoTexto.innerText !== nuevoModo) {
-        modoTexto.innerText = nuevoModo;
-    }
+        const modoTexto =
+        document.getElementById("modo");
 
-    // 🔥 REPOSO
-    if (data.estado_control == 0) {
+        // =========================
+        // CALCULAR MODO
+        // =========================
+        let nuevoModo;
 
-        texto = `
-            🟢 REPOSO<br>
-            Sistema en espera
-        `;
+        if (data.estado_control == 0) {
 
-        configContenido.className = "text-2xl font-bold text-gray-400";
-
-    } else {
-
-        if (data.modoManual == 1) {
-
-            texto = `
-                <div class="space-y-3 text-center">
-                    <div class="text-blue-400 text-xl font-bold">🟦 MODO MANUAL</div>
-
-                    <div>⚡ PWM: <span class="font-mono text-yellow-300">${data.pwm}</span></div>
-
-                    <div>🌬️ Cámara: <span class="font-mono text-yellow-300">${data.velA}</span></div>
-
-                    <div>🔥 Zona caliente: <span class="font-mono text-yellow-300">${data.velB}</span></div>
-
-                    <div>💧 Humedad objetivo: <span class="font-mono text-yellow-300">${data.humedad_objetivo}</span></div>
-
-                    <div>⏱️ Registro: <span class="font-mono text-yellow-300">${data.tserial}s</span></div>
-                </div>
-            `;
-
-            configContenido.className = "text-2xl font-bold text-blue-400";
+            nuevoModo = "Modo: --";
 
         } else {
 
+            nuevoModo =
+                data.modoManual == 1
+                ? "Modo: Manual"
+                : "Modo: Automático";
+        }
+
+        if (modoTexto.innerText !== nuevoModo) {
+            modoTexto.innerText = nuevoModo;
+        }
+
+        // =========================
+        // REPOSO
+        // =========================
+        if (data.estado_control == 0) {
+
             texto = `
-                <div class="space-y-3 text-center">
-                    <div class="text-green-400 text-xl font-bold">🟩 MODO AUTOMÁTICO</div>
-
-                    <div>🎯 KP: <span class="font-mono text-yellow-300">${data.kp}</span></div>
-
-                    <div>🎯 KI: <span class="font-mono text-yellow-300">${data.ki}</span></div>
-
-                    <div>🌬️ Cámara: <span class="font-mono text-yellow-300">${data.velA}</span></div>
-
-                    <div>🔥 Zona caliente: <span class="font-mono text-yellow-300">${data.velB}</span></div>
-
-                    <div>💧 Humedad objetivo: <span class="font-mono text-yellow-300">${data.humedad_objetivo}</span></div>
-
-                    <div>⏱️ Registro: <span class="font-mono text-yellow-300">${data.tserial}s</span></div>
-                </div>
+                🟢 REPOSO<br>
+                Sistema en espera
             `;
 
-            configContenido.className = "text-2xl font-bold text-green-400";
+            configContenido.className =
+            "text-2xl font-bold text-gray-400";
+
+        } else {
+
+            // =========================
+            // MANUAL
+            // =========================
+            if (data.modoManual == 1) {
+
+                texto = `
+                    <div class="space-y-3 text-center">
+
+                        <div class="text-blue-400 text-xl font-bold">
+                            🟦 MODO MANUAL
+                        </div>
+
+                        <div>
+                            ⚡ PWM:
+                            <span class="font-mono text-yellow-300">
+                                ${data.pwm}
+                            </span>
+                        </div>
+
+                        <div>
+                            🌬️ Cámara:
+                            <span class="font-mono text-yellow-300">
+                                ${data.velA}
+                            </span>
+                        </div>
+
+                        <div>
+                            🔥 Zona caliente:
+                            <span class="font-mono text-yellow-300">
+                                ${data.velB}
+                            </span>
+                        </div>
+
+                        <div>
+                            💧 Humedad objetivo:
+                            <span class="font-mono text-yellow-300">
+                                ${data.humedad_objetivo}
+                            </span>
+                        </div>
+
+                        <div>
+                            ⏱️ Registro:
+                            <span class="font-mono text-yellow-300">
+                                ${data.tserial}s
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                configContenido.className =
+                "text-2xl font-bold text-blue-400";
+
+            }
+
+            // =========================
+            // AUTOMÁTICO
+            // =========================
+            else {
+
+                texto = `
+                    <div class="space-y-3 text-center">
+
+                        <div class="text-green-400 text-xl font-bold">
+                            🟩 MODO AUTOMÁTICO
+                        </div>
+
+                        <div>
+                            🎯 KP:
+                            <span class="font-mono text-yellow-300">
+                                ${data.kp}
+                            </span>
+                        </div>
+
+                        <div>
+                            🎯 KI:
+                            <span class="font-mono text-yellow-300">
+                                ${data.ki}
+                            </span>
+                        </div>
+
+                        <div>
+                            🌬️ Cámara:
+                            <span class="font-mono text-yellow-300">
+                                ${data.velA}
+                            </span>
+                        </div>
+
+                        <div>
+                            🔥 Zona caliente:
+                            <span class="font-mono text-yellow-300">
+                                ${data.velB}
+                            </span>
+                        </div>
+
+                        <div>
+                            💧 Humedad objetivo:
+                            <span class="font-mono text-yellow-300">
+                                ${data.humedad_objetivo}
+                            </span>
+                        </div>
+
+                        <div>
+                            ⏱️ Registro:
+                            <span class="font-mono text-yellow-300">
+                                ${data.tserial}s
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                configContenido.className =
+                "text-2xl font-bold text-green-400";
+            }
         }
-    }
 
-    // 🔥 aplicar HTML UNA SOLA VEZ
-    configContenido.innerHTML = texto;
+        // =========================
+        // HTML
+        // =========================
+        configContenido.innerHTML = texto;
 
-    // 🔥 botones
-    document.getElementById("btnBorrar").disabled = !data.descargado;
+        // =========================
+        // BOTONES
+        // =========================
+        document.getElementById("btnBorrar").disabled =
+            !data.descargado;
 
-    const btnDescargar = document.querySelector('button[onclick="descargarCSV()"]');
-    btnDescargar.disabled = (data.estado_control == 1);
+        const btnDescargar =
+        document.querySelector(
+            'button[onclick="descargarCSV()"]'
+        );
+
+        btnDescargar.disabled =
+            (data.estado_control == 1);
+
+        // =========================
+        // BLOQUEOS UI
+        // =========================
+        if (data.estado_control == 1) {
+
+            bloquearUI(true);
+
+        } else {
+
+            bloquearUI(false);
+        }
+
+        // =========================
+        // BOTÓN DETENER
+        // =========================
+        document.getElementById("btnDetener").disabled =
+            (data.estado_control == 0);
 
     } catch (error) {
 
         console.log("Error cargarConfig:", error);
     }
-
 }
 // =========================
 // INIT
 // =========================
 async function init() {
 
-    fetch(
-    `${SUPABASE_URL}/rest/v1/config_actual?id=eq.1&select=*`,
-    {
-        headers: supaHeaders()
-    }
-    )
+    const res = await fetch('/config');
+
     const data = await res.json();
-    const cfg = data[0];
 
     pwmControl.value = data.pwm;
     pwmValue.innerText = data.pwm;
@@ -500,7 +605,6 @@ async function init() {
 
     velB.value = data.velB;
     velBValue.innerText = data.velB;
-    
 
     document.getElementById("humedadObjetivo").value =
     data.humedad_objetivo || 0;
@@ -509,17 +613,18 @@ async function init() {
     data.tserial || 15;
 
     modoActual = data.modoManual;
+
     actualizarModoUI();
 }
 
 // =========================
-// START (PROTEGIDO)
+// START (SUPABASE)
 // =========================
 async function iniciarExperimento() {
 
     if (!sistemaOnline) {
-    alert("Dispositivo desconectado");
-    return;
+        alert("Dispositivo desconectado");
+        return;
     }
 
     if (configActual.estado_control == 1) {
@@ -527,35 +632,97 @@ async function iniciarExperimento() {
         return;
     }
 
-    const nombre = document.getElementById("nombreExp").value;
+    const nombre =
+    document.getElementById("nombreExp").value;
 
+    // =========================
+    // CONFIG EXPERIMENTO
+    // =========================
     const config = {
-        modoManual: modoActual,
 
-        // 🔥 lógica por modo
-        pwm: modoActual == 1 ? parseInt(pwmControl.value) : 0,
+        nombre: nombre || "exp",
 
-        kp: modoActual == 0 ? parseFloat(kp.value || 0) : 0,
-        ki: modoActual == 0 ? parseFloat(ki.value || 0) : 0,
+        modomanual: modoActual,
 
-        // 🔥 ventiladores SIEMPRE se envían
-        velA: parseInt(velA.value || 0),
-        velB: parseInt(velB.value || 0),
+        pwm:
+            modoActual == 1
+            ? parseInt(pwmControl.value)
+            : 0,
 
-        humedad_objetivo: parseFloat(humedadObjetivo.value || 0), // 🔥
-        tserial: parseFloat(tserial.value || 15)
+        kp:
+            modoActual == 0
+            ? parseFloat(kp.value || 0)
+            : 0,
+
+        ki:
+            modoActual == 0
+            ? parseFloat(ki.value || 0)
+            : 0,
+
+        vela: parseInt(velA.value || 0),
+
+        velb: parseInt(velB.value || 0),
+
+        humedad_objetivo:
+            parseFloat(humedadObjetivo.value || 0),
+
+        tserial:
+            parseFloat(tserial.value || 15)
     };
 
-    await fetch('/config', {
+    // =========================
+    // CREAR EXPERIMENTO
+    // =========================
+    const resExp = await fetch(
+    `${SUPABASE_URL}/rest/v1/experimentos`,
+    {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+
+        headers: {
+            ...supaHeaders(),
+            "Prefer": "return=representation"
+        },
+
         body: JSON.stringify(config)
     });
 
-    await fetch('/start', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ nombre })
+    const expData = await resExp.json();
+
+    const expID = expData[0].id;
+
+    // =========================
+    // ACTUALIZAR CONFIG_ACTUAL
+    // =========================
+    await fetch(
+    `${SUPABASE_URL}/rest/v1/config_actual?id=eq.1`,
+    {
+        method: 'PATCH',
+
+        headers: supaHeaders(),
+
+        body: JSON.stringify({
+
+            estado_control: 1,
+
+            experimento_id: expID,
+
+            modomanual: config.modomanual,
+
+            pwm: config.pwm,
+
+            kp: config.kp,
+
+            ki: config.ki,
+
+            vela: config.vela,
+
+            velb: config.velb,
+
+            humedad_objetivo:
+                config.humedad_objetivo,
+
+            tserial: config.tserial
+        })
     });
 
     alert("Experimento iniciado 🚀");
@@ -565,7 +732,54 @@ async function iniciarExperimento() {
 // STOP
 // =========================
 async function detenerExperimento() {
-    await fetch('/stop', { method: 'POST' });
+
+    // =========================
+    // CERRAR EXPERIMENTO
+    // =========================
+    await fetch(
+    `${SUPABASE_URL}/rest/v1/experimentos?fecha_fin=is.null`,
+    {
+        method: 'PATCH',
+
+        headers: supaHeaders(),
+
+        body: JSON.stringify({
+            fecha_fin: new Date().toISOString()
+        })
+    });
+
+    // =========================
+    // REPOSO
+    // =========================
+    await fetch(
+    `${SUPABASE_URL}/rest/v1/config_actual?id=eq.1`,
+    {
+        method: 'PATCH',
+
+        headers: supaHeaders(),
+
+        body: JSON.stringify({
+
+            estado_control: 0,
+
+            experimento_id: 0,
+
+            pwm: 0,
+
+            vela: 0,
+
+            velb: 0,
+
+            kp: 0,
+
+            ki: 0,
+
+            humedad_objetivo: 0,
+
+            tserial: 15
+        })
+    });
+
     alert("Experimento detenido 🛑");
 }
 
@@ -601,29 +815,58 @@ async function borrarDatos() {
 }
 
 // =========================
-// VERIFICAR CONEXION
+// VERIFICAR CONEXIÓN
 // =========================
 async function verificarConexion() {
 
     try {
 
-        const res = await fetch('/status');
+        const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/live_data?id=eq.1&select=updated_at`,
+        {
+            headers: supaHeaders()
+        }
+        );
+
         const data = await res.json();
 
-        sistemaOnline = data.online;
+        if (!data || data.length === 0) {
+            throw new Error("Sin datos");
+        }
 
-        const configContenido = document.getElementById("configContenido");
+        const live = data[0];
 
-        if (!data.online) {
+        const ultimaActualizacion =
+            new Date(live.updated_at).getTime();
 
-            estadoSistema.innerText = "🔴 SIN CONEXIÓN";
-            estadoSistema.className = "text-red-400 font-bold";
+        const ahora = Date.now();
+
+        const diferencia =
+            (ahora - ultimaActualizacion) / 1000;
+
+        const configContenido =
+        document.getElementById("configContenido");
+
+        // =========================
+        // OFFLINE
+        // =========================
+        if (diferencia > 20) {
+
+            sistemaOnline = false;
+
+            estadoSistema.innerText =
+                "🔴 SIN CONEXIÓN";
+
+            estadoSistema.className =
+                "text-red-400 font-bold";
 
             configContenido.innerHTML = `
                 🔴 SIN CONEXIÓN<br>
                 Dispositivo no responde
             `;
-            configContenido.className = "text-2xl font-bold text-red-400";
+
+            configContenido.className =
+                "text-2xl font-bold text-red-400";
 
             bloquearUI(true);
 
@@ -632,20 +875,31 @@ async function verificarConexion() {
             hExt.innerText = "--";
             tInt.innerText = "--";
             hInt.innerText = "--";
+
             c1.innerText = "--";
             c2.innerText = "--";
             c12.innerText = "--";
+
             pwm.innerText = "--";
+
             corriente.innerText = "--";
+
             rocio.innerText = "--";
 
             return;
         }
 
-        // 🟢 ONLINE (solo control UI, NO estado físico)
-        if (data.estado_control == 1) {
+        // =========================
+        // ONLINE
+        // =========================
+        sistemaOnline = true;
+
+        if (configActual.estado_control == 1) {
+
             bloquearUI(true);
+
         } else {
+
             bloquearUI(false);
         }
 
@@ -653,21 +907,29 @@ async function verificarConexion() {
 
         sistemaOnline = false;
 
-        estadoSistema.innerText = "🔴 SIN CONEXIÓN";
-        estadoSistema.className = "text-red-400 font-bold";
+        estadoSistema.innerText =
+            "🔴 SIN CONEXIÓN";
+
+        estadoSistema.className =
+            "text-red-400 font-bold";
 
         bloquearUI(true);
 
         // limpiar sensores
         tExt.innerText = "--";
         hExt.innerText = "--";
+
         tInt.innerText = "--";
         hInt.innerText = "--";
+
         c1.innerText = "--";
         c2.innerText = "--";
         c12.innerText = "--";
+
         pwm.innerText = "--";
+
         corriente.innerText = "--";
+
         rocio.innerText = "--";
     }
 }
@@ -677,14 +939,13 @@ async function verificarConexion() {
 // =========================
 window.onload = async () => {
 
-    sistemaOnline = true;
 
-    //await verificarConexion();
+    await verificarConexion();
     await init();
     await cargarConfig();
     await cargarDatos();
 
-    //setInterval(verificarConexion, 5000);
+    setInterval(verificarConexion, 5000);
     setInterval(cargarConfig, 5000);
     setInterval(cargarDatos, 2000);
 };
@@ -692,4 +953,4 @@ window.onload = async () => {
 </script>
 
 </body>
-</html>l
+</html>
