@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Condensador</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+
+
+<body class="bg-gray-900 text-white">
+
+
+<div class="p-6">
+
+    <!-- HEADER -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">💧 Sistema de Condensación</h1>
+
+        <p id="estadoSistema" class="text-lg font-semibold text-green-400">
+            Estado: --
+        </p>
+
+        <p id="modo" class="text-lg">
+            Modo: --
+        </p>
+    </div>
+
+    <!-- GRID DATOS -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+        <div class="bg-gray-800 p-4 rounded-xl"><p>🌡️ Temp Exterior</p><h2 id="tExt">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>💧 Humedad Exterior</p><h2 id="hExt">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>🌡️ Temp Interior</p><h2 id="tInt">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>💧 Humedad Interior</p><h2 id="hInt">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>❄️ Placa Fría 1</p><h2 id="c1">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>❄️ Placa Fría 2</p><h2 id="c2">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>❄️ Promedio Placas</p><h2 id="c12">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>🎛️ PWM en Peltiers</p><h2 id="pwm">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>⚡ Corriente en Peltiers</p><h2 id="corriente">--</h2></div>
+        <div class="bg-gray-800 p-4 rounded-xl"><p>💧 Punto de Rocío</p><h2 id="rocio">--</h2>
+</div>
+    </div>
+
+    <!-- CONFIG ACTUAL -->
+    <div id="configActual"
+        class="mt-6 mb-4 text-center bg-gray-800 p-5 rounded-2xl shadow-lg">
+
+    <h3 class="text-lg text-gray-400 mb-2">⚙️ Configuración Activa</h3>
+
+    <div id="configContenido" class="text-2xl font-bold text-white">
+        --
+    </div>
+
+    </div>
+
+    <!-- CONTROL -->
+    <div class="mt-8 bg-gray-800 p-6 rounded-2xl shadow-lg">
+
+        <h2 class="text-2xl font-bold mb-6 text-center">
+            🎛️ Control del Sistema
+        </h2>
+
+        <!-- INDICADOR -->
+        <div id="modoIndicator"
+            class="p-3 rounded-xl text-center font-bold mb-6 bg-blue-600">
+            MODO MANUAL
+        </div>
+
+        <!-- INPUT NOMBRE -->
+        <input id="nombreExp" maxlength="10"
+        class="text-black p-2 rounded w-full mb-4"
+        placeholder="Nombre (max 10)">
+
+        <!-- BOTONES -->
+        <div class="flex justify-center gap-4 mb-6">
+            <button id="btnManual" class="px-4 py-2 bg-blue-600 rounded-xl">Manual</button>
+            <button id="btnAuto" class="px-4 py-2 bg-gray-600 rounded-xl">Automático</button>
+        </div>
+
+        <!-- GRID -->
+        <div class="grid md:grid-cols-3 gap-6">
+
+            <!-- MANUAL -->
+            <div id="manualBox" class="bg-gray-700 p-4 rounded-xl">
+                <h3 class="mb-3 font-semibold text-blue-400">Manual</h3>
+
+                <label>PWM Manual en Peltiers</label>
+                <input id="pwmControl" type="range" min="0" max="255" class="w-full">
+                <p class="text-center mt-2"><span id="pwmValue">0</span></p>
+            </div>
+
+            <!-- AUTO -->
+            <div id="autoBox" class="bg-gray-700 p-4 rounded-xl">
+                <h3 class="mb-3 font-semibold text-green-400">Automático</h3>
+
+                <label>KP</label>
+                <input id="kp" type="number" step="0.1"
+                class="w-full p-2 mb-2 text-black rounded">
+
+                <label>KI</label>
+                <input id="ki" type="number" step="0.01"
+                class="w-full p-2 text-black rounded">
+            </div>
+
+            <!-- VENTILADORES -->
+            <div class="bg-gray-700 p-4 rounded-xl">
+                <h3 class="mb-3 font-semibold text-yellow-400">🌬️ Flujo de Aire(PWM)</h3>
+
+                <label>Flujo de Aire Camara Interna</label>
+                <input id="velA" type="range" min="0" max="255" class="w-full">
+                <span id="velAValue">0</span>
+
+                <label class="mt-2 block">Flujo de Aire Discipación de Calor</label>
+                <input id="velB" type="range" min="0" max="255" class="w-full">
+                <span id="velBValue">0</span>
+            </div>
+
+        <div class="bg-gray-700 p-4 rounded-xl">
+            <h3 class="mb-3 font-semibold text-cyan-400">💧 Control de Humedad</h3>
+
+            <label>Humedad objetivo (%)</label>
+            <input id="humedadObjetivo" type="number" min="0" max="100" class="w-full text-black p-2 rounded">
+        </div>
+
+        <div class="bg-gray-700 p-4 rounded-xl">
+            <h3 class="mb-3 font-semibold text-purple-400">
+                ⏱️ Registro de Datos
+            </h3>
+
+            <label>Frecuencia de guardado (10-100 s)</label>
+
+            <input
+                id="tserial"
+                type="number"
+                min="10"
+                max="100"
+                value="15"
+                class="w-full text-black p-2 rounded">
+        </div>
+        
+        </div>
+
+        <!-- BOTONES -->
+        <div class="mt-6 text-center flex justify-center gap-4">
+            <button onclick="iniciarExperimento()"
+                class="bg-green-600 px-6 py-2 rounded-xl">
+                Iniciar
+            </button>
+
+            <button onclick="detenerExperimento()"
+                class="bg-red-600 px-6 py-2 rounded-xl">
+                Detener
+            </button>
+
+            <button onclick="descargarCSV()"
+                class="bg-yellow-600 px-6 py-2 rounded-xl">
+                Descargar CSV
+            </button>
+            <button onclick="borrarDatos()"
+                id="btnBorrar"
+                class="bg-gray-600 px-6 py-2 rounded-xl"
+                disabled>
+                Borrar Datos
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+// =========================
+// VARIABLES
+// =========================
+let modoActual = 1;
+let configActual = {};
+let sistemaOnline = false;
+
+// =========================
+// BLOQUEO TOTAL UI
+// =========================
+function bloquearUI(bloquear) {
+
+    // 🔥 HUMEDAD OBJETIVO
+    const humedadInput = document.getElementById("humedadObjetivo");
+    if (humedadInput) {
+        humedadInput.disabled = bloquear;
+    }
+
+    // INPUT
+    document.getElementById("nombreExp").disabled = bloquear;
+
+    // CONTROLES
+    pwmControl.disabled = bloquear;
+    kp.disabled = bloquear;
+    ki.disabled = bloquear;
+    velA.disabled = bloquear;
+    velB.disabled = bloquear;
+    tserial.disabled = bloquear;
+
+    // BOTONES MODO
+    btnManual.disabled = bloquear;
+    btnAuto.disabled = bloquear;
+
+    // BOTONES START/STOP
+    const btnStart = document.querySelector('button[onclick="iniciarExperimento()"]');
+    const btnStop  = document.querySelector('button[onclick="detenerExperimento()"]');
+
+    btnStart.disabled = bloquear;
+
+    // 🔥 lógica correcta
+    if (!sistemaOnline) {
+        btnStop.disabled = true; // 🔴 sin conexión → NO detener
+    } else {
+        btnStop.disabled = !bloquear; // solo activo en experimento
+    }
+
+}
+// =========================
+// BOTONES MODO (PROTEGIDOS)
+// =========================
+btnManual.onclick = () => {
+    if (configActual.estado_control == 1) return;
+    modoActual = 1;
+    actualizarModoUI();
+};
+
+btnAuto.onclick = () => {
+    if (configActual.estado_control == 1) return;
+    modoActual = 0;
+    actualizarModoUI();
+};
+
+// =========================
+// UI MODO
+// =========================
+function actualizarModoUI() {
+
+    if (modoActual == 1) {
+        modoIndicator.innerText = "MODO MANUAL";
+        modoIndicator.className = "p-3 rounded-xl text-center font-bold mb-6 bg-blue-600";
+
+        pwmControl.disabled = false;
+        kp.disabled = true;
+        ki.disabled = true;
+
+        kp.value = 0;
+        ki.value = 0;
+
+        manualBox.style.opacity = "1";
+        autoBox.style.opacity = "0.4";
+
+    } else {
+        modoIndicator.innerText = "MODO AUTOMÁTICO";
+        modoIndicator.className = "p-3 rounded-xl text-center font-bold mb-6 bg-green-600";
+
+        pwmControl.disabled = true;
+        kp.disabled = false;
+        ki.disabled = false;
+
+        pwmControl.value = 0;
+        pwmValue.innerText = 0;
+
+        manualBox.style.opacity = "0.4";
+        autoBox.style.opacity = "1";
+    }
+}
+
+// =========================
+// SLIDERS
+// =========================
+pwmControl.oninput = () => pwmValue.innerText = pwmControl.value;
+velA.oninput = () => velAValue.innerText = velA.value;
+velB.oninput = () => velBValue.innerText = velB.value;
+
+// =========================
+// DATOS (LIVE)
+// =========================
+async function cargarDatos() {
+
+    try {
+
+    if (!sistemaOnline) return; // 🔥 PRIMERO VALIDAR
+
+    const res = await fetch('/live');
+    const data = await res.json();
+
+    if (!data) return;
+
+    tExt.innerText = data.tExt + " °C";
+    hExt.innerText = data.hExt + " %";
+    tInt.innerText = data.tInt + " °C";
+    hInt.innerText = data.hInt + " %";
+
+    c1.innerText = data.c1 + " °C";
+    c2.innerText = data.c2 + " °C";
+    c12.innerText = data.c12 + " °C";
+
+    pwm.innerText = data.pwm;
+    corriente.innerText = data.corriente + " A";
+    rocio.innerText = data.puntoRocio + " °C";
+
+        // 🔥 ESTADO REAL DEL ARDUINO (DESDE /live)
+    if (data.estado == 4) {
+        estadoSistema.innerText = "🟠 ESPERANDO HUMEDAD";
+        estadoSistema.className = "text-orange-400 font-bold";
+    }
+    else if (data.estado == 1) {
+        estadoSistema.innerText = "🔴 SOBRECORRIENTE";
+        estadoSistema.className = "text-red-500 font-bold";
+    }
+    else if (data.estado == 2) {
+        estadoSistema.innerText = "🟠 ALTA TEMPERATURA";
+        estadoSistema.className = "text-orange-500 font-bold";
+    }
+    else if (data.estado == 3) {
+        estadoSistema.innerText = "⚠️ ERROR SENSORES";
+        estadoSistema.className = "text-yellow-400 font-bold";
+    }
+    else if (data.estado == 0) {    
+        if (configActual.estado_control == 1) {
+        estadoSistema.innerText = "🔴 EJECUTANDO";
+        estadoSistema.className = "text-red-400 font-bold";
+    }
+    else {
+        estadoSistema.innerText = "🟢 REPOSO";
+        estadoSistema.className = "text-green-400 font-bold";
+    }
+    }
+    } catch (error) {
+
+        console.log("Error cargarDatos:", error);
+    }
+}
+
+// =========================
+// CONFIG + CONTROL GLOBAL
+// =========================
+async function cargarConfig() {
+
+    try {
+
+    if (!sistemaOnline) {
+        document.getElementById("modo").innerText = "Modo: --";
+        return;
+    }
+
+    const res = await fetch('/config');
+    const data = await res.json();
+
+    configActual = data;
+
+    let texto = "";
+    const configContenido = document.getElementById("configContenido");
+    const modoTexto = document.getElementById("modo");
+
+    // 🔥 calcular modo
+    let nuevoModo;
+
+    if (data.estado_control == 0) {
+        nuevoModo = "Modo: --";
+    } else {
+        nuevoModo = data.modoManual == 1
+            ? "Modo: Manual"
+            : "Modo: Automático";
+    }
+
+    if (modoTexto.innerText !== nuevoModo) {
+        modoTexto.innerText = nuevoModo;
+    }
+
+    // 🔥 REPOSO
+    if (data.estado_control == 0) {
+
+        texto = `
+            🟢 REPOSO<br>
+            Sistema en espera
+        `;
+
+        configContenido.className = "text-2xl font-bold text-gray-400";
+
+    } else {
+
+        if (data.modoManual == 1) {
+
+            texto = `
+                <div class="space-y-3 text-center">
+                    <div class="text-blue-400 text-xl font-bold">🟦 MODO MANUAL</div>
+
+                    <div>⚡ PWM: <span class="font-mono text-yellow-300">${data.pwm}</span></div>
+
+                    <div>🌬️ Cámara: <span class="font-mono text-yellow-300">${data.velA}</span></div>
+
+                    <div>🔥 Zona caliente: <span class="font-mono text-yellow-300">${data.velB}</span></div>
+
+                    <div>💧 Humedad objetivo: <span class="font-mono text-yellow-300">${data.humedad_objetivo}</span></div>
+
+                    <div>⏱️ Registro: <span class="font-mono text-yellow-300">${data.tserial}s</span></div>
+                </div>
+            `;
+
+            configContenido.className = "text-2xl font-bold text-blue-400";
+
+        } else {
+
+            texto = `
+                <div class="space-y-3 text-center">
+                    <div class="text-green-400 text-xl font-bold">🟩 MODO AUTOMÁTICO</div>
+
+                    <div>🎯 KP: <span class="font-mono text-yellow-300">${data.kp}</span></div>
+
+                    <div>🎯 KI: <span class="font-mono text-yellow-300">${data.ki}</span></div>
+
+                    <div>🌬️ Cámara: <span class="font-mono text-yellow-300">${data.velA}</span></div>
+
+                    <div>🔥 Zona caliente: <span class="font-mono text-yellow-300">${data.velB}</span></div>
+
+                    <div>💧 Humedad objetivo: <span class="font-mono text-yellow-300">${data.humedad_objetivo}</span></div>
+
+                    <div>⏱️ Registro: <span class="font-mono text-yellow-300">${data.tserial}s</span></div>
+                </div>
+            `;
+
+            configContenido.className = "text-2xl font-bold text-green-400";
+        }
+    }
+
+    // 🔥 aplicar HTML UNA SOLA VEZ
+    configContenido.innerHTML = texto;
+
+    // 🔥 botones
+    document.getElementById("btnBorrar").disabled = !data.descargado;
+
+    const btnDescargar = document.querySelector('button[onclick="descargarCSV()"]');
+    btnDescargar.disabled = (data.estado_control == 1);
+
+    } catch (error) {
+
+        console.log("Error cargarConfig:", error);
+    }
+
+}
+// =========================
+// INIT
+// =========================
+async function init() {
+
+    const res = await fetch('/config');
+    const data = await res.json();
+
+    pwmControl.value = data.pwm;
+    pwmValue.innerText = data.pwm;
+
+    kp.value = data.kp;
+    ki.value = data.ki;
+
+    velA.value = data.velA;
+    velAValue.innerText = data.velA;
+
+    velB.value = data.velB;
+    velBValue.innerText = data.velB;
+    
+
+    document.getElementById("humedadObjetivo").value =
+    data.humedad_objetivo || 0;
+
+    document.getElementById("tserial").value =
+    data.tserial || 15;
+
+    modoActual = data.modoManual;
+    actualizarModoUI();
+}
+
+// =========================
+// START (PROTEGIDO)
+// =========================
+async function iniciarExperimento() {
+
+    if (!sistemaOnline) {
+    alert("Dispositivo desconectado");
+    return;
+    }
+
+    if (configActual.estado_control == 1) {
+        alert("Ya está en ejecución");
+        return;
+    }
+
+    const nombre = document.getElementById("nombreExp").value;
+
+    const config = {
+        modoManual: modoActual,
+
+        // 🔥 lógica por modo
+        pwm: modoActual == 1 ? parseInt(pwmControl.value) : 0,
+
+        kp: modoActual == 0 ? parseFloat(kp.value || 0) : 0,
+        ki: modoActual == 0 ? parseFloat(ki.value || 0) : 0,
+
+        // 🔥 ventiladores SIEMPRE se envían
+        velA: parseInt(velA.value || 0),
+        velB: parseInt(velB.value || 0),
+
+        humedad_objetivo: parseFloat(humedadObjetivo.value || 0), // 🔥
+        tserial: parseFloat(tserial.value || 15)
+    };
+
+    await fetch('/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(config)
+    });
+
+    await fetch('/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ nombre })
+    });
+
+    alert("Experimento iniciado 🚀");
+}
+
+// =========================
+// STOP
+// =========================
+async function detenerExperimento() {
+    await fetch('/stop', { method: 'POST' });
+    alert("Experimento detenido 🛑");
+}
+
+// =========================
+// DESCARGAR
+// =========================
+function descargarCSV() {
+
+    if (configActual.estado_control == 1) {
+        alert("Primero debes detener el experimento");
+        return;
+    }
+
+    window.open('/download', '_blank');
+}
+
+// =========================
+// BORRAR DATOS
+// =========================
+async function borrarDatos() {
+
+    if (!confirm("¿Seguro que quieres borrar los datos?")) return;
+
+    const res = await fetch('/clear', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.error) {
+        alert(data.error);
+        return;
+    }
+
+    alert("Datos eliminados");
+}
+
+// =========================
+// VERIFICAR CONEXION
+// =========================
+async function verificarConexion() {
+
+    try {
+
+        const res = await fetch('/status');
+        const data = await res.json();
+
+        sistemaOnline = data.online;
+
+        const configContenido = document.getElementById("configContenido");
+
+        if (!data.online) {
+
+            estadoSistema.innerText = "🔴 SIN CONEXIÓN";
+            estadoSistema.className = "text-red-400 font-bold";
+
+            configContenido.innerHTML = `
+                🔴 SIN CONEXIÓN<br>
+                Dispositivo no responde
+            `;
+            configContenido.className = "text-2xl font-bold text-red-400";
+
+            bloquearUI(true);
+
+            // limpiar sensores
+            tExt.innerText = "--";
+            hExt.innerText = "--";
+            tInt.innerText = "--";
+            hInt.innerText = "--";
+            c1.innerText = "--";
+            c2.innerText = "--";
+            c12.innerText = "--";
+            pwm.innerText = "--";
+            corriente.innerText = "--";
+            rocio.innerText = "--";
+
+            return;
+        }
+
+        // 🟢 ONLINE (solo control UI, NO estado físico)
+        if (data.estado_control == 1) {
+            bloquearUI(true);
+        } else {
+            bloquearUI(false);
+        }
+
+    } catch (error) {
+
+        sistemaOnline = false;
+
+        estadoSistema.innerText = "🔴 SIN CONEXIÓN";
+        estadoSistema.className = "text-red-400 font-bold";
+
+        bloquearUI(true);
+
+        // limpiar sensores
+        tExt.innerText = "--";
+        hExt.innerText = "--";
+        tInt.innerText = "--";
+        hInt.innerText = "--";
+        c1.innerText = "--";
+        c2.innerText = "--";
+        c12.innerText = "--";
+        pwm.innerText = "--";
+        corriente.innerText = "--";
+        rocio.innerText = "--";
+    }
+}
+
+// =========================
+// LOOP
+// =========================
+window.onload = async () => {
+
+    sistemaOnline = true;
+
+    //await verificarConexion();
+    await init();
+    await cargarConfig();
+    await cargarDatos();
+
+    //setInterval(verificarConexion, 5000);
+    setInterval(cargarConfig, 5000);
+    setInterval(cargarDatos, 2000);
+};
+
+</script>
+
+</body>
+</html>l
