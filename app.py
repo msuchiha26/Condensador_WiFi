@@ -1,7 +1,6 @@
 import os
 import psycopg2
 from psycopg2 import pool
-import time
 from flask import Flask, request, jsonify, render_template, Response
 
 app = Flask(__name__)
@@ -30,13 +29,7 @@ def release_conn(conn):
     if db_pool:
         db_pool.putconn(conn)
 
-# =========================
-# VARIABLE GLOBAL (LIVE)
-# =========================
-latest_data = {
-    "data": {},
-    "last_seen": 0
-}
+
 # =========================
 # HOME
 # =========================
@@ -51,12 +44,6 @@ def home():
 def dashboard():
     return render_template('index.html')
 
-# =========================
-# LIVE DATA
-# =========================
-@app.route('/live')
-def live():
-    return jsonify(latest_data.get("data", {}))
 
 # =========================
 # CONFIG ACTUAL
@@ -145,8 +132,7 @@ def set_config():
                 velA=%s,
                 velB=%s,
                 humedad_objetivo=%s,
-                tserial=%s,
-                updated_at=CURRENT_TIMESTAMP
+                tserial=%s                
             WHERE id=1
         """, (
             data.get("modoManual"),
@@ -171,105 +157,6 @@ def set_config():
     finally:
         cur.close()
         release_conn(conn)
-
-# =========================
-# START EXPERIMENTO
-# =========================
-@app.route('/start', methods=['POST'])
-def start():
-    data = request.get_json()
-
-    nombre = data.get("nombre", "exp").strip()
-
-    if not nombre:
-        nombre = "exp"
-
-    conn = get_conn()
-    cur = conn.cursor()
-    try:
-        # 🔥 EVITAR DOBLE START
-        cur.execute("SELECT estado_control FROM config_actual WHERE id=1")
-        estado = cur.fetchone()[0]
-
-        if estado == 1:
-            return jsonify({"error": "ya está ejecutando"}), 400
-
-        # crear experimento
-        cur.execute("""
-        INSERT INTO experimentos (
-            nombre, modoManual, pwm, kp, ki, velA, velB, humedad_objetivo, tserial
-        )
-        SELECT
-            %s, modoManual, pwm, kp, ki, velA, velB, humedad_objetivo, tserial
-        FROM config_actual
-        WHERE id=1
-        RETURNING id
-        """, (nombre,))
-
-        exp_id = cur.fetchone()[0]
-
-        # activar sistema
-        cur.execute("""
-            UPDATE config_actual
-            SET estado_control = 1
-            WHERE id = 1
-        """)
-
-        conn.commit()
-
-    except Exception as e:
-        conn.rollback()
-        print("ERROR START:", e)
-        return {"error": str(e)}, 500
-    
-    finally:
-        cur.close()
-        release_conn(conn)    
-
-    return jsonify({"id": exp_id})
-
-# =========================
-# STOP EXPERIMENTO
-# =========================
-@app.route('/stop', methods=['POST'])
-def stop():
-    conn = get_conn()
-    cur = conn.cursor()
-
-    try:
-        # cerrar experimento
-        cur.execute("""
-            UPDATE experimentos
-            SET fecha_fin = CURRENT_TIMESTAMP
-            WHERE fecha_fin IS NULL
-        """)
-
-        # volver a reposo
-        cur.execute("""
-            UPDATE config_actual
-            SET estado_control = 0,
-            pwm = 0,
-            velA = 0,
-            velB = 0,
-            kp = 0,
-            ki = 0,
-            humedad_objetivo = 0,
-            tserial = 15
-            WHERE id = 1
-        """)
-
-        conn.commit()
-
-    except Exception as e:
-        conn.rollback()
-        print("ERROR STOP:", e)
-        return {"error": str(e)}, 500
-
-    finally:
-        cur.close()
-        release_conn(conn)
-
-    return jsonify({"status": "ok"})
 
 # =========================
 # DESCARGAR CSV
@@ -372,10 +259,6 @@ def download():
         pass
 
 # =========================
-# EXPERIMENTO ACTIVO
-# =========================
-
-# =========================
 # BORRAR DATOS
 # =========================
 @app.route('/clear', methods=['POST'])
@@ -412,117 +295,6 @@ def clear():
 
     return {"status": "ok"}
 
-# =========================
-# RECIBIR DATOS
-# =========================
-@app.route('/data', methods=['POST'])
-def data():
-    global latest_data
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "sin datos"}), 400
-
-    # 🔥 siempre actualizar estado online
-    latest_data = {
-        "data": data,
-        "last_seen": time.time()        
-    }
-
-    print("📥 Datos recibidos:", data)
-
-    conn = get_conn()
-    cur = conn.cursor()
-
-    try:
-        # estado sistema
-        cur.execute("SELECT estado_control FROM config_actual WHERE id=1")
-        estado = cur.fetchone()[0]
-
-        # 🔴 NO GUARDAR EN REPOSO
-        if estado == 0:
-            return jsonify({"status": "reposo"})
-
-        cur.execute("""
-            SELECT id FROM experimentos
-            WHERE fecha_fin IS NULL
-            ORDER BY id DESC LIMIT 1
-        """)
-
-        r = cur.fetchone()
-        exp_id = r[0] if r else None
-
-        if exp_id is None:
-            return jsonify({"error": "no hay experimento"}), 400
-
-        cur.execute("""
-            INSERT INTO datos (
-                experiment_id,
-                tExt,hExt,tInt,hInt,
-                c1,c2,c12,
-                puntoRocio,error,
-                pwm,velA,velB,
-                corriente,estado
-            )
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            exp_id,
-            data.get("tExt"),
-            data.get("hExt"),
-            data.get("tInt"),
-            data.get("hInt"),
-            data.get("c1"),
-            data.get("c2"),
-            data.get("c12"),
-            data.get("puntoRocio"),
-            data.get("error"),
-            data.get("pwm"),
-            data.get("velA"),
-            data.get("velB"),
-            data.get("corriente"),
-            data.get("estado")
-        ))
-
-        conn.commit()
-
-        return jsonify({"status": "guardado"})
-
-    except Exception as e:
-        conn.rollback()
-        print("ERROR DATA:", e)
-        return {"error": str(e)}, 500
-
-    finally:
-        cur.close()
-        release_conn(conn)
-# =========================
-# STATUS
-# =========================
-@app.route('/status')
-def status():
-    global latest_data
-
-    ahora = time.time()
-    last_seen = latest_data.get("last_seen", 0)
-
-    online = (ahora - last_seen) < 10
-
-    if not online:
-        return {"online": False}
-
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute("SELECT estado_control FROM config_actual WHERE id=1")
-    estado = cur.fetchone()[0]
-
-    cur.close()
-    release_conn(conn)
-
-    return {
-        "online": True,
-        "estado_control": estado
-    }
 
 # =========================
 # RUN
