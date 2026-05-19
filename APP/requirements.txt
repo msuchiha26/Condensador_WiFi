@@ -1,2 +1,5 @@
-flask
-psycopg2-binary
+Flask
+gunicorn
+flask-cors
+requests
+supabase
