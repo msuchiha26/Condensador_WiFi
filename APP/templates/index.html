@@ -8,11 +8,13 @@
 
 
 <script>
-const SUPABASE_URL =
-"https://cyrrotinqlcnfemozcza.supabase.co";
+import os
 
-const SUPABASE_KEY =
-"sb_publishable_qMdTi6lG1PvNnFieKQH-HA_382sdugb";
+SUPABASE_URL =
+os.getenv("SUPABASE_URL")
+
+SUPABASE_KEY =
+os.getenv("SUPABASE_KEY")
 
 function supaHeaders() {
     return {
