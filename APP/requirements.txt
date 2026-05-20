@@ -3,3 +3,4 @@ gunicorn
 flask-cors
 requests
 supabase
+psycopg2-binary
